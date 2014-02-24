@@ -18,16 +18,26 @@
 // Create the XHR object.
 
 function createCORSRequest(method, url) {
-    var xhr = new XMLHttpRequest();
+    var xhr;
+    if (window.XMLHttpRequest) {
+        xhr = new XMLHttpRequest();
+    } 
+    else {
+        xhr = new ActiveXObject("MSXML2.XMLHTTP.3.0"); 
+    }
+
     if ("withCredentials" in xhr) 
     {
         // XHR for Chrome/Firefox/Opera/Safari
         xhr.open(method, url, true); 
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     }
     else if (typeof XDomainRequest != "undefined")
     {
         // XDomainRequest for IE.
+        // to set the content type in IE use 
         xhr = new XDomainRequest(); 
+        
         xhr.open(method, url);
     }
     else
@@ -38,53 +48,73 @@ function createCORSRequest(method, url) {
     return xhr;
 }
 
-// Helper method to parse the title tag from the response.
-function getTitle(text) {
-    return text.match('<title>(.*)?</title>')[1];
-}
 
-function makeCORSRequest() {
-    var url = 'this should be dynamic';
+function makeCORSRequest(method, url, payload) {
+    var xhr = createCORSRequest(method, url);
 
-    var xhr = createCORSRequest('GET', url);
     if(!xhr) 
     {
         alert('CORS not supported'); 
         return;
     }
+
     
     // Response handlers.
+    
     xhr.onload = function() {
-        var text = xhr.responseText; 
-        var title = getTitle(text);
-        alert('Response from CORS request to ' + url + ': ' + title);
+        // parse the response from the server
+        var response = JSON.parse(xhr.responseText);
+
+        if (response.status == 'success') {
+            // add the logic to update the DOM here
+            // a flash message or someway to notify the 
+            // user that the message is successful
+            alert('this is the onload function');
+        } else {
+
+        }
     }
 
     xhr.onerror = function() {
-        alert('There was an error making the request to ' + url + ': ' + title); 
+        alert('There was an error making the request to ' + url ); 
     }
 
-    xhr.send();
+    xhr.send(payload);
 }
 
+
+function serialForm(el) {;
+    var arr = [];
+
+    for (var i = 0;  i < el.elements.length; i++) {
+        if (el.elements[i].type != 'submit') {
+            arr.push(el.elements[i].name + "=" + encodeURIComponent(el.elements[i].value));
+            arr.push("&");
+        } 
+    }
+    arr.pop();
+    return arr.join('');
+}
 
 
 $(document).ready(function(){
     $('#send-the-form').click(function(e){
+
+        // prevent the form from submitting non-ajax
         e.preventDefault(); 
-        var xhr = new XMLHttpRequest();
 
+        // set vars
+        var form    = document.getElementById('send-it'),
+            method  = 'POST'
+            payload = serialForm(form);
+            url     = 'http://68b8e7eb.ngrok.com/sends/recreate'
 
-        xhr.open('GET', 'http://7b535f74.ngrok.com/sends/test_orig');
-
-        xhr.onload = function() {
-            var text = xhr.responseText; 
-            console.log(text);
-        }
-
-        xhr.send('phone=8582005141&content_url=https://www.filepicker.io/api/file/9BrMUEm9THesOw9jhwGQ');
-
-
-
+        // make the request
+        makeCORSRequest(method, url, payload);
+        //alert('hello there');
     });
+
 });
+
+
+
